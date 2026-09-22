@@ -6,19 +6,20 @@ import { signOut } from 'firebase/auth';
 
 export default function AdminDashboard() {
   const { currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('academic');
+  const [activeTab, setActiveTab] = useState('users'); // users, academic, finance
   
-  // Form States
+  // --- Form States ---
+  const [roleForm, setRoleForm] = useState({ email: '', role: 'student', full_name: '', department: 'Computer Science', custom_id: '' });
   const [assignForm, setAssignForm] = useState({ employee_id: '', semester: 1, department: 'Computer Science' });
   const [publishForm, setPublishForm] = useState({ semester: 1, department: 'Computer Science' });
   const [promoteForm, setPromoteForm] = useState({ roll_number: '' });
   
-  // Data States
+  // --- Data States ---
   const [payments, setPayments] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [semesterFilter, setSemesterFilter] = useState('');
   
-  // UI States
+  // --- UI States ---
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -28,6 +29,35 @@ export default function AdminDashboard() {
   };
 
   // --- API Handlers ---
+
+  const handleSetRole = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const payload = {
+        email: roleForm.email,
+        role: roleForm.role,
+        department: roleForm.department || 'Computer Science'
+      };
+
+      if (roleForm.full_name) payload.full_name = roleForm.full_name;
+
+      // Dynamically attach the ID override based on the selected role
+      if (roleForm.role === 'student' && roleForm.custom_id) {
+        payload.roll_number = roleForm.custom_id;
+      } else if (roleForm.role === 'teacher' && roleForm.custom_id) {
+        payload.employee_id = roleForm.custom_id;
+      }
+
+      const res = await axiosClient.post('/auth/set-role', payload);
+      showMessage(res.data.message);
+      setRoleForm({ email: '', role: 'student', full_name: '', department: 'Computer Science', custom_id: '' });
+    } catch (err) {
+      showMessage(err.response?.data?.detail || 'Failed to assign role', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAssignTeacher = async (e) => {
     e.preventDefault();
@@ -47,7 +77,6 @@ export default function AdminDashboard() {
     e.preventDefault();
     setLoading(true);
     try {
-      // In FastAPI, primitive arguments without a Pydantic model are read as query parameters
       const res = await axiosClient.post('/admin/publish-results', null, {
         params: { semester: publishForm.semester, department: publishForm.department }
       });
@@ -93,19 +122,50 @@ export default function AdminDashboard() {
     try {
       await axiosClient.post('/payments/callback', { payment_id, status });
       showMessage(`Payment marked as ${status}`);
-      fetchPayments(); // Refresh the list
+      fetchPayments();
     } catch (err) {
       showMessage(err.response?.data?.detail || 'Failed to update payment', 'error');
     }
   };
 
-  // Load payments when switching to the finance tab or changing filters
   useEffect(() => {
     if (activeTab === 'finance') fetchPayments();
   }, [activeTab, statusFilter, semesterFilter]);
 
 
   // --- Sub-components ---
+
+  const UsersPanel = () => (
+    <div className="admin-grid">
+      <div className="results-card">
+        <h3>Provision User Access</h3>
+        <p className="helper-text">Upgrades a registered 'unassigned' user to a Student or Teacher profile.</p>
+        <form onSubmit={handleSetRole} className="admin-form">
+          <input type="email" placeholder="Registered Email" required value={roleForm.email} onChange={e => setRoleForm({...roleForm, email: e.target.value})} />
+          
+          <select value={roleForm.role} onChange={e => setRoleForm({...roleForm, role: e.target.value})}>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+          
+          <input type="text" placeholder="Full Name (Optional)" value={roleForm.full_name} onChange={e => setRoleForm({...roleForm, full_name: e.target.value})} />
+          <input type="text" placeholder="Department" required value={roleForm.department} onChange={e => setRoleForm({...roleForm, department: e.target.value})} />
+          
+          {roleForm.role !== 'admin' && (
+            <input 
+              type="text" 
+              placeholder={roleForm.role === 'student' ? "Roll Number Override (Optional)" : "Employee ID Override (Optional)"} 
+              value={roleForm.custom_id} 
+              onChange={e => setRoleForm({...roleForm, custom_id: e.target.value})} 
+            />
+          )}
+          
+          <button type="submit" className="btn-primary" disabled={loading}>Assign Role & Sync DB</button>
+        </form>
+      </div>
+    </div>
+  );
 
   const AcademicPanel = () => (
     <div className="admin-grid">
@@ -208,6 +268,7 @@ export default function AdminDashboard() {
 
       <main className="dashboard-content">
         <div className="tab-navigation">
+          <button className={activeTab === 'users' ? 'tab active' : 'tab'} onClick={() => setActiveTab('users')}>User Access</button>
           <button className={activeTab === 'academic' ? 'tab active' : 'tab'} onClick={() => setActiveTab('academic')}>Academic Ops</button>
           <button className={activeTab === 'finance' ? 'tab active' : 'tab'} onClick={() => setActiveTab('finance')}>Financial Ledger</button>
         </div>
@@ -218,7 +279,9 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'academic' ? <AcademicPanel /> : <FinancePanel />}
+        {activeTab === 'users' && <UsersPanel />}
+        {activeTab === 'academic' && <AcademicPanel />}
+        {activeTab === 'finance' && <FinancePanel />}
       </main>
     </div>
   );

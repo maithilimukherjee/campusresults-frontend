@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import Register from './pages/Auth/Register';
 import Login from './pages/Auth/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
@@ -18,6 +19,16 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Dynamic Root Redirect based on role */}
+        <Route 
+  path="/register" 
+  element={
+    currentUser && userRole !== 'unassigned' ? (
+      <Navigate to={`/${userRole}`} replace />
+    ) : (
+      <Register />
+    )
+  } 
+/>
         <Route 
           path="/" 
           element={
