@@ -2,6 +2,9 @@
 
 A React + Vite web portal for managing academic results and fee payments, with role-based access for Students, Teachers, and Admins.
 
+## Backend Repository 
+https://github.com/maithilimukherjee/campus-results-portal.git
+
 ## Tech Stack
 
 - **React 19** with React Router v7
