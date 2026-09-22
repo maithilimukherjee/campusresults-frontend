@@ -9,7 +9,7 @@ export default function StudentDashboard() {
   const [resultData, setResultData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [semester, setSemester] = useState(1); // Default to semester 1
+  const [semester, setSemester] = useState(1);
 
   useEffect(() => {
     fetchResults(semester);
@@ -36,10 +36,23 @@ export default function StudentDashboard() {
   const handleDownload = async () => {
     try {
       const response = await axiosClient.get(`/results/${semester}/download`);
-      // In a real app, you would handle the PDF blob or redirect to the provided URL
       alert(`Download link generated: ${response.data.download_url}`);
     } catch (err) {
       alert('Failed to generate download link.');
+    }
+  };
+
+  const handleRequestReevaluation = async (subjectCode) => {
+    if (!window.confirm(`Are you sure you want to request a reevaluation for ${subjectCode}? This can only be done once.`)) return;
+    
+    try {
+      const res = await axiosClient.post(`/results/${semester}/request-reevaluation`, {
+        subject_code: subjectCode
+      });
+      alert(res.data.message);
+      fetchResults(semester); // Refresh the UI to show the 'Under Review' badge
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to request reevaluation.');
     }
   };
 
@@ -88,6 +101,7 @@ export default function StudentDashboard() {
                   <th>Marks Obtained</th>
                   <th>Max Marks</th>
                   <th>Grade</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,19 +111,24 @@ export default function StudentDashboard() {
                     <td>{sub.subject_name}</td>
                     <td>{sub.marks_obtained}</td>
                     <td>{sub.max_marks}</td>
-                    <td><strong>{sub.grade}</strong></td>
+                    <td>{sub.grade}</td>
+                    <td>
+                      <button
+                        onClick={() => handleRequestReevaluation(sub.subject_code)}
+                        className="btn-primary"
+                        disabled={sub.reevaluation_requested}
+                      >
+                        Request Reevaluation
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            {resultData.can_download && (
-              <button onClick={handleDownload} className="btn-primary mt-4">
-                Download Official Grade Card
-              </button>
-            )}
           </div>
-        ) : null}
+        ) : (
+          <div className="no-results">No results found.</div>
+        )}
       </main>
     </div>
   );
