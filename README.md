@@ -1,16 +1,73 @@
-# React + Vite
+# CampusResults Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite web portal for managing academic results and fee payments, with role-based access for Students, Teachers, and Admins.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** with React Router v7
+- **Vite 8** for bundling and dev server
+- **Firebase** for authentication (JWT-based)
+- **Axios** for API communication
 
-## React Compiler
+## Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── api/            # Axios client with Firebase JWT interceptor
+├── components/     # Shared components (Navbar, ProtectedRoute)
+├── config/         # Firebase initialization
+├── context/        # AuthContext (currentUser, userRole)
+└── pages/
+    ├── Auth/       # Login, Register
+    ├── Student/    # Results viewer, reevaluation, fee payment
+    ├── Teacher/    # Teacher dashboard
+    └── Admin/      # Admin dashboard
+```
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment variables
+
+Create a `.env` file in the root:
+
+```env
+VITE_API_BASE_URL=https://campus-results-portal.onrender.com
+VITE_FIREBASE_API_KEY=<your_api_key>
+VITE_FIREBASE_AUTH_DOMAIN=<your_auth_domain>
+VITE_FIREBASE_PROJECT_ID=<your_project_id>
+```
+
+### 3. Run the dev server
+
+```bash
+npm run dev
+```
+
+## Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+## Role-Based Routing
+
+| Role | Route |
+|------|-------|
+| `admin` | `/admin` |
+| `teacher` | `/teacher` |
+| `student` | `/student` |
+
+Unauthenticated users are redirected to `/login`. Role is resolved from Firebase via `AuthContext`.
+
+## Authentication
+
+All API requests automatically attach a fresh Firebase JWT via an Axios request interceptor (`src/api/axiosClient.js`).
